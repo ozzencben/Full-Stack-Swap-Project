@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poiret+One&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  list-style: none;
+}
+
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --orange: #eb5e28;
+
+  --poiret: "Poiret One", cursive;
+  --roboto: "Roboto", sans-serif;
+  --inter: "Inter", sans-serif;
+  --montserrat: "Montserrat", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+button,
+strong {
+  font-family: "Inter", sans-serif;
+}
+
+p,
+span,
+li,
+a,
+label,
+input,
+textarea {
+  font-family: "Montserrat", sans-serif;
+}
+
+::placeholder {
+  font-family: "Montserrat", sans-serif;
+  color: #a9a9a9;
+}
+
+::selection {
+  color: var(--white);
+  background-color: var(--black);
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  -webkit-text-fill-color: #000 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+button {
+  cursor: pointer;
+}
+
+textarea {
+  resize: none;
+}
+
+a {
+  text-decoration: none;
+  color: black;
+}

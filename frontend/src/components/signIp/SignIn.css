@@ -1,0 +1,125 @@
+.sign-in-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  padding: 30px 20px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(10px); /* cam efekti */
+  background-color: rgba(255, 255, 255, 0.8); /* daha soft beyaz */
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.sign-in-container h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #222;
+}
+
+.sign-in-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
+.sign-in-container .close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #555;
+  background-color: transparent;
+  border: none;
+  transition: color 0.2s;
+}
+
+.sign-in-container .close-btn:hover {
+  color: var(--orange);
+}
+
+.sign-in-container form input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.7);
+  outline: none;
+  font-size: 14px;
+  color: #222;
+  transition: all 0.2s;
+}
+
+.sign-in-container form input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
+}
+
+.sign-in-container form .sign-in-btn {
+  width: 100%;
+  padding: 12px 15px;
+  background-color: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-in-container form .sign-in-btn:hover {
+  background-color: #ff9c42;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 156, 66, 0.4);
+}
+
+.sign-in-container .sign-in-prompt {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #555;
+}
+
+.sign-in-container .sign-in-prompt span {
+  color: var(--orange);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-in-container .sign-in-prompt span:hover {
+  text-decoration: underline;
+  color: #ff9c42;
+}
+
+/* Blur arka plan overlay */
+.sign-in-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}

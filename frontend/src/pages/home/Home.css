@@ -1,0 +1,56 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 20px 10px;
+  box-sizing: border-box;
+}
+
+.no-products {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.product-list {
+  column-count: 5;
+  column-gap: 20px;
+  width: 100%;
+}
+
+.product-card-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.bottom-loader {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+/* Responsive düzenleme */
+@media (max-width: 1200px) {
+  .product-list {
+    column-count: 4;
+  }
+}
+
+@media (max-width: 900px) {
+  .product-list {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 600px) {
+  .product-list {
+    column-count: 2;
+  }
+}

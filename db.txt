@@ -1,0 +1,121 @@
+users ---
+-- UUID desteği için extension'ı aktif et
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),  -- UUID, otomatik oluşturulur
+    username VARCHAR(50) UNIQUE NOT NULL,                          -- İsim soyisim
+	firstname VARCHAR(50) NOT NULL,
+	lastname VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,              -- E-posta
+    password VARCHAR(255) NOT NULL,                  -- Şifre (hashlenmiş)
+    profile_image TEXT,                              -- Profil resmi URL
+    created_at TIMESTAMP DEFAULT NOW(),             -- Hesap oluşturulma tarihi
+    updated_at TIMESTAMP DEFAULT NOW()              -- Son güncelleme tarihi
+);
+ALTER TABLE users
+ADD COLUMN refresh_token TEXT;
+ALTER TABLE users
+ADD COLUMN primary_address_id UUID REFERENCES addresses(id) ON DELETE SET NULL;
+
+--------------------------------------------------------------------
+
+addresses ---
+CREATE TABLE addresses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(50), -- örn: Ev, İş, Yazlık gibi kısa başlık
+  full_name VARCHAR(100) NOT NULL, -- teslimat yapılacak kişi
+  phone_number VARCHAR(15) NOT NULL,
+  country VARCHAR(50) DEFAULT 'Türkiye',
+  city VARCHAR(50) NOT NULL,
+  district VARCHAR(50) NOT NULL,
+  neighborhood VARCHAR(100),
+  street VARCHAR(100),
+  building_no VARCHAR(20),
+  apartment_no VARCHAR(20),
+  postal_code VARCHAR(10),
+  additional_info TEXT, -- açıklama ya da not (örn. "3. kat, sağ kapı")
+  is_default BOOLEAN DEFAULT false, -- varsayılan adres
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+----------------------------------------------------------------------
+
+-- Gerekli extension (UUID üretmek için)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ===============================
+-- CATEGORIES TABLE
+-- ===============================
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,         -- Örn: Elektronik
+    slug VARCHAR(100) UNIQUE NOT NULL,         -- Örn: electronics
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===============================
+-- PRODUCT CONDITIONS TABLE
+-- ===============================
+CREATE TABLE product_conditions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,          -- Sistemsel kısa ad (örnek: "new")
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===============================
+-- PRODUCT STATUSES TABLE
+-- ===============================
+CREATE TABLE product_statuses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,          -- Sistemsel kısa ad (örnek: "active")
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE product_statuses
+ADD COLUMN display_name VARCHAR(100);
+
+
+-- ===============================
+-- PRODUCTS TABLE
+-- ===============================
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(50) NOT NULL,
+    description TEXT,
+    price NUMERIC(10, 2) CHECK (price >= 0),
+    images TEXT[],
+    favorite_count INTEGER DEFAULT 0,
+    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    condition_id INTEGER REFERENCES product_conditions(id) ON DELETE SET NULL,
+    status_id INTEGER REFERENCES product_statuses(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===============================
+-- TRIGGER: updated_at alanını otomatik güncelleme
+-- ===============================
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = NOW();
+   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_products_updated_at
+BEFORE UPDATE ON products
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-------------------------------------------------------------
+CREATE TABLE favorites (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, product_id)  -- Aynı kullanıcı aynı ürünü favorileyemez
+);

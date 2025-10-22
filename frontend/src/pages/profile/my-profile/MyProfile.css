@@ -1,0 +1,310 @@
+.my-profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  height: 100vh;
+  padding: 20px;
+}
+
+/* user info */
+.user-info-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.info-text h4 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.info-text p {
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.profile-image-container {
+  cursor: pointer;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.profile-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 20px;
+}
+
+.ci-user {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--black);
+}
+
+.ci-user:hover {
+  background-color: #f2f2f2;
+}
+
+.ci-user svg {
+  width: 50px;
+  height: 50px;
+  color: var(--black);
+}
+
+.ci-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--black);
+}
+
+.ci-edit input {
+  display: none;
+}
+
+.ci-edit:hover {
+  background-color: var(--black);
+  color: var(--white);
+}
+
+/* profile tabs */
+.profile-tab-container {
+  width: 100%;
+  margin: 50px 0;
+}
+
+.profile-tabs {
+  display: flex;
+  position: relative;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.tab-item.active {
+  color: var(--orange);
+  font-weight: bold;
+}
+
+.tab-border {
+  position: absolute;
+  bottom: -2.5px;
+  height: 3px;
+  background-color: var(--orange);
+  transition: transform 0.3s;
+}
+
+.tab-section-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+  padding: 10px;
+}
+
+.tab-section-container.information-section,
+.tab-section-container.address-section {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: min(100%, 800px);
+  gap: 20px;
+  padding: 10px;
+  margin-top: 25px;
+}
+
+.tab-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+
+.tab-section-container.information-section .tab-item,
+.tab-section-container.address-section .tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 5px;
+  width: min(100%, 800px);
+}
+
+.tab-section-container.information-section .tab-item.error input {
+  border-color: red;
+}
+
+.tab-section-container.information-section .tab-item label,
+.tab-section-container.address-section .tab-item label {
+  width: 100%;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.tab-section-container.information-section .tab-item input,
+.tab-section-container.address-section .tab-item input {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.tab-section-container.address-section .tab-item textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.tab-section-container.information-section .tab-item button,
+.tab-section-container.address-section .tab-item button {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--black);
+  color: var(--white);
+  transition: all 0.3s ease-in-out;
+}
+
+.tab-section-container.information-section .tab-item button:hover {
+  background-color: var(--orange);
+}
+
+.my-addresses-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.address-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin: 10px 0;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+  z-index: 10;
+}
+
+.address-item p {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.my-addresses-title {
+  text-align: left;
+  width: 100%;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+
+.address-item:hover {
+  background-color: #ccc;
+}
+
+.item-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* responsive */
+@media (min-width: 768px) {
+  .tab-item {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .info-text h4 {
+    font-size: 1.2rem;
+  }
+
+  .info-text p {
+    font-size: 1rem;
+  }
+
+  .profile-image-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .profile-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  .ci-user {
+    width: 100px;
+    height: 100px;
+  }
+
+  .tab-item {
+    font-size: 16px;
+  }
+
+  .information-container {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-direction: row;
+  }
+
+  .address-item p {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .tab-item {
+    font-size: 18px;
+  }
+}

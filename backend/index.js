@@ -4,6 +4,9 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const errorHandler = require("./middleware/error");
+const userRouter = require("./routes/user");
+const addressRouter = require("./routes/address");
+const productRouter = require("./routes/product");
 
 
 const app = express();
@@ -14,6 +17,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
+
+// routes
+app.use("/api/users", userRouter);
+app.use("/api/addresses", addressRouter);
+app.use("/api/products", productRouter);
 
 // global error handler
 app.use(errorHandler);

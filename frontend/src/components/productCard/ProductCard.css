@@ -1,0 +1,107 @@
+.product-card-container {
+  width: 100%;
+  break-inside: avoid;
+  margin-bottom: 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.product-card-image {
+  width: 100%;
+  height: auto; /* dinamik yükseklik */
+  display: block;
+  object-fit: cover;
+}
+
+.content-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.product-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-content .title,
+.product-content .price {
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: var(--poiret);
+}
+
+/* bookmark */
+.ui-bookmark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-bookmark input {
+  display: none;
+}
+
+.ui-bookmark .bookmark {
+  color: rgb(164, 164, 164);
+  cursor: pointer;
+  transition: 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-bookmark .bookmark:hover {
+  color: rgb(165, 164, 164);
+}
+
+.ui-bookmark .bookmark.active {
+  color: var(--orange);
+  animation: bookmark-scale 0.3s forwards;
+}
+
+@keyframes bookmark-scale {
+  50% {
+    transform: scaleY(0.6);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+/* Responsive */
+@media (min-width: 576px) {
+  .product-card-container {
+    width: 180px;
+  }
+}
+
+@media (min-width: 768px) {
+  .product-card-container {
+    width: 220px;
+  }
+
+  .product-content .title,
+  .product-content .price {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-card-container {
+    width: 250px;
+  }
+
+  .product-content .title,
+  .product-content .price {
+    font-size: 1.2rem;
+  }
+}
