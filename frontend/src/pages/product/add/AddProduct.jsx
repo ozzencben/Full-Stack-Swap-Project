@@ -122,7 +122,6 @@ const AddProduct = () => {
       try {
         setLoading(true);
         const res = await getCategories();
-        console.log("categories", res);
         setCategories(res);
       } catch (error) {
         console.error(error);
@@ -139,7 +138,6 @@ const AddProduct = () => {
       try {
         setLoading(true);
         const res = await getConditions();
-        console.log("conditions", res);
         setConditions(res);
       } catch (error) {
         console.error(error);
@@ -156,7 +154,6 @@ const AddProduct = () => {
       try {
         setLoading(true);
         const res = await getStatuses();
-        console.log("statuses", res);
         setStatuses(res);
       } catch (error) {
         console.error(error);

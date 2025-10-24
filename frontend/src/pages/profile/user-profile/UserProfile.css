@@ -1,0 +1,150 @@
+.userprofile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  padding: 20px;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8f8f8;
+}
+
+.userprofile-card {
+  width: 100%;
+  max-width: 900px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.userprofile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userprofile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #ccc;
+  flex-shrink: 0;
+}
+
+.userprofile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userprofile-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #555;
+}
+
+.userprofile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.userprofile-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.userprofile-username {
+  font-size: 1rem;
+  color: #555;
+}
+
+.userprofile-email {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.userprofile-details {
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.userprofile-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.userprofile-btn {
+  padding: 10px 15px;
+  background-color: #000;
+  color: #fff;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.userprofile-btn:hover {
+  background-color: #333;
+}
+
+/* Ürün listesi */
+.userprofile-products {
+  width: 100%;
+  max-width: 900px;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.product-card {
+  background-color: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+}
+
+.product-card-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.product-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  font-family: var(--poiret);
+  padding: 0 10px;
+}
+
+.product-card-price {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0 10px 10px 10px;
+  font-family: var(--poiret);
+}

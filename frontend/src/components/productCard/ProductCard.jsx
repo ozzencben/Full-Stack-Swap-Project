@@ -11,7 +11,7 @@ import SignIn from "../signIp/SignIn";
 import "./ProductCard.css";
 
 const ProductCard = ({ product, isAuthenticated }) => {
-  const { user } = useContext(AuthContext);
+  const { user, navigate } = useContext(AuthContext);
 
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,16 +56,20 @@ const ProductCard = ({ product, isAuthenticated }) => {
       setLoading(false);
     }
   };
-  console.log("product", product);
 
   return (
     <div className="product-card-container">
-      <img
-        src={product.images[0]}
-        alt={product.title}
-        className="product-card-image"
-        loading="lazy"
-      />
+      <div className="image-box">
+        <div className="image-overlay">
+          <p onClick={() => navigate(`/product/${product.id}`)}>View Details</p>
+        </div>
+        <img
+          src={product.images[0]}
+          alt={product.title}
+          className="product-card-image"
+          loading="lazy"
+        />
+      </div>
       <div className="content-container">
         <div className="product-content">
           <p className="title">{product.title}</p>

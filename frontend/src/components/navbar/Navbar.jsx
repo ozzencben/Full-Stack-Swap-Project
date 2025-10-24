@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
 import { CiUser } from "react-icons/ci";
+import { IoIosNotificationsOutline } from "react-icons/io";
 import { IoAdd } from "react-icons/io5";
 import AuthContext from "../../context/auth/AuthContext";
 import "./Navbar.css";
@@ -87,13 +88,22 @@ const Navbar = () => {
             >
               <CiUser />
             </div>
-            <div className="nav-button" onClick={handleLogout}>
+            <div
+              className="nav-button"
+              onClick={() => closeMenu("/notification")}
+            >
+              <IoIosNotificationsOutline />
+            </div>
+            <div className="nav-button logout" onClick={handleLogout}>
               <AiOutlineLogout />
             </div>
           </>
         ) : (
           <>
-            <button onClick={() => closeMenu("/login")} className="nav-button">
+            <button
+              onClick={() => closeMenu("/login")}
+              className="nav-button sign-in"
+            >
               Sign In
             </button>
           </>

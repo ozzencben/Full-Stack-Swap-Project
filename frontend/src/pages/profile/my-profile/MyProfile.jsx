@@ -1,15 +1,20 @@
 import imageCompression from "browser-image-compression";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { CiEdit, CiUser } from "react-icons/ci";
+import { MdOutlineStarPurple500, MdOutlineStarRate } from "react-icons/md";
 import { RiDeleteBin7Line } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Loader from "../../../components/loader/Loader";
+import AuthContext from "../../../context/auth/AuthContext";
 import {
   addAddress,
   deleteAddress,
   getAddresses,
+  setPrimaryAddress,
   updateAddress,
 } from "../../../services/address";
+import { getMyProducts, getUserFavorites } from "../../../services/product";
 import {
   changeProfileImage,
   checkEmail,
@@ -20,9 +25,11 @@ import {
 import "./MyProfile.css";
 
 const MyProfile = () => {
+  const { user } = useContext(AuthContext);
   const fileRef = useRef(null);
+  const navigate = useNavigate();
 
-  // information states
+  // --- States ---
   const [username, setUsername] = useState("");
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
@@ -30,7 +37,6 @@ const MyProfile = () => {
   const [emailAvailable, setEmailAvailable] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(false);
 
-  // address states
   const [addressData, setAddressData] = useState({
     title: "",
     full_name: "",
@@ -48,74 +54,71 @@ const MyProfile = () => {
   const [addresses, setAddresses] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // profile states
   const [profileData, setProfileData] = useState({});
   const [loading, setLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const tabs = ["Information", "Favorites", "Orders", "Addresses", "Settings"];
+  const [favorites, setFavorites] = useState([]);
 
-  // ----------- Handlers ----------------
+  const [myProducts, setMyProducts] = useState([]);
+  const tabs = ["Information", "Products", "Orders", "Favorites", "Settings"];
+
+  // --- Handlers ---
   const handleChange = (e) => {
-    setAddressData({
-      ...addressData,
-      [e.target.name]: e.target.value,
+    setAddressData({ ...addressData, [e.target.name]: e.target.value });
+  };
+
+  const handleSetPrimaryAddress = (id) => {
+    // 1. profileData.primary_address_id'yi güncelle
+    setProfileData((prev) => ({
+      ...prev,
+      primary_address_id: id,
+    }));
+
+    // 2. backend'e request gönder
+    setPrimaryAddress(id).catch((err) => {
+      console.error(err);
+      // hata durumunda eski veriyi geri çek
+      getAddresses().then((res) => setAddresses(res.addresses));
+      myProfile().then((data) => setProfileData(data.user));
     });
   };
 
   const handleChangeInput = (e) => {
-    if (e.target.name === "email") {
-      try {
-        checkEmail(e.target.value).then((res) => {
-          setEmailAvailable(res.success);
-        });
-      } catch (error) {
-        console.error(error);
-      }
+    const { name, value } = e.target;
+
+    if (name === "email") {
+      checkEmail(value).then((res) => setEmailAvailable(res.success));
     }
-    if (e.target.name === "username") {
-      try {
-        checkUsername(e.target.value).then((res) => {
-          setUsernameAvailable(res.success);
-        });
-      } catch (error) {
-        console.error(error);
-      }
+    if (name === "username") {
+      checkUsername(value).then((res) => setUsernameAvailable(res.success));
     }
 
-    if (e.target.name === "username") setUsername(e.target.value);
-    if (e.target.name === "firstname") setFirstname(e.target.value);
-    if (e.target.name === "lastname") setLastname(e.target.value);
-    if (e.target.name === "email") setEmail(e.target.value);
+    if (name === "username") setUsername(value);
+    if (name === "firstname") setFirstname(value);
+    if (name === "lastname") setLastname(value);
+    if (name === "email") setEmail(value);
   };
 
   const handleUpdateProfile = async () => {
     let hasError = false;
 
     if (profileData.username !== username) {
-      try {
-        const checkRes = await checkUsername(username);
-        if (!checkRes.success) {
-          toast.error("Username already exists!");
-          hasError = true;
-        }
-      } catch (error) {
-        console.error(error);
+      const checkRes = await checkUsername(username).catch(
+        () => (hasError = true)
+      );
+      if (checkRes && !checkRes.success) {
+        toast.error("Username already exists!");
         hasError = true;
       }
     }
 
     if (profileData.email !== email) {
-      try {
-        const checkRes = await checkEmail(email);
-        if (!checkRes.success) {
-          toast.error("Email already exists!");
-          hasError = true;
-        }
-      } catch (error) {
-        console.error(error);
+      const checkRes = await checkEmail(email).catch(() => (hasError = true));
+      if (checkRes && !checkRes.success) {
+        toast.error("Email already exists!");
         hasError = true;
       }
     }
@@ -135,7 +138,13 @@ const MyProfile = () => {
 
     try {
       setIsUpdating(true);
-      const data = await updateProfile(username, firstname, lastname, email);
+      const data = await updateProfile({
+        username,
+        firstname,
+        lastname,
+        email,
+      });
+
       toast.success("Profile updated successfully!");
       if (data.user) setProfileData(data.user);
     } catch (error) {
@@ -146,9 +155,7 @@ const MyProfile = () => {
     }
   };
 
-  const handleIconClick = () => {
-    fileRef.current.click();
-  };
+  const handleIconClick = () => fileRef.current.click();
 
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
@@ -165,7 +172,7 @@ const MyProfile = () => {
       setPreviewUrl(preview);
 
       const formData = new FormData();
-      formData.append("image", compressedFile);
+      formData.append("profile_image", compressedFile); // key frontend/backend uyumlu
 
       const data = await changeProfileImage(formData);
       toast.success("Profile image updated successfully!");
@@ -176,36 +183,27 @@ const MyProfile = () => {
     }
   };
 
-  // Adres seçildiğinde formu doldur
   const handleSelectedAddress = (address, index) => {
     setAddressData(address);
     setEditingIndex(index);
   };
 
-  // Add / Update adres
   const handleAddOrUpdateAddress = async () => {
     try {
       setLoading(true);
-
       if (editingIndex !== null) {
-        // Güncelleme
         const addressId = addresses[editingIndex].id;
         const data = await updateAddress(addressId, addressData);
-
         const updatedAddresses = [...addresses];
         updatedAddresses[editingIndex] = data.address;
         setAddresses(updatedAddresses);
-
         toast.success("Address updated successfully!");
         setEditingIndex(null);
       } else {
-        // Yeni ekleme
         const data = await addAddress(addressData);
         setAddresses((prev) => [...prev, data.address]);
         toast.success("Address added successfully!");
       }
-
-      // Formu temizle
       setAddressData({
         title: "",
         full_name: "",
@@ -242,7 +240,22 @@ const MyProfile = () => {
     }
   };
 
-  // ----------- useEffect ----------------
+  // --- useEffects ---
+  useEffect(() => {
+    const fetchUserFavorites = async () => {
+      try {
+        setLoading(true);
+        const res = await getUserFavorites();
+        setFavorites(res.favorites);
+        setLoading(false);
+      } catch (error) {
+        console.error(error);
+        setLoading(false);
+      }
+    };
+    fetchUserFavorites();
+  }, []);
+
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
@@ -277,9 +290,25 @@ const MyProfile = () => {
     fetchMyProfile();
   }, []);
 
-  if (loading) return <Loader />;
+  useEffect(() => {
+    const fetchAllMyProducts = async () => {
+      try {
+        setLoading(true);
+        const res = await getMyProducts();
+        setMyProducts(res.products);
+        setLoading(false);
+      } catch (error) {
+        console.error(error);
+        setLoading(false);
+      }
+    };
+    fetchAllMyProducts();
+  }, []);
 
-  // ----------- JSX ----------------
+  if (loading) return <Loader />;
+  console.log("profile", profileData);
+
+  // --- JSX ---
   return (
     <div className="my-profile-container">
       <div className="user-info-container">
@@ -336,8 +365,10 @@ const MyProfile = () => {
           />
         </div>
 
+        {/* Information Tab */}
         {activeIndex === 0 && (
           <div className="information-container">
+            {/* Profile Inputs */}
             <div className="tab-section-container information-section">
               <div
                 className={`tab-item ${
@@ -403,11 +434,36 @@ const MyProfile = () => {
                     onClick={() => handleSelectedAddress(address, index)}
                   >
                     <p>{address.title}</p>
-                    <div
-                      className="item-settings"
-                      onClick={() => handleDeleteAddress(address.id)}
-                    >
-                      <RiDeleteBin7Line />
+                    <div className="address-item-icons">
+                      <div
+                        className="item-settings"
+                        onClick={() => handleSetPrimaryAddress(address.id)}
+                      >
+                        {profileData.primary_address_id === address.id ? (
+                          <>
+                            <span className="primary-address">
+                              Primary Address
+                            </span>
+                            <MdOutlineStarPurple500
+                              style={{
+                                width: "20px",
+                                height: "20px",
+                                fill: "black",
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <MdOutlineStarRate
+                            style={{ width: "20px", height: "20px" }}
+                          />
+                        )}
+                      </div>
+                      <div
+                        className="item-settings"
+                        onClick={() => handleDeleteAddress(address.id)}
+                      >
+                        <RiDeleteBin7Line />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -439,7 +495,6 @@ const MyProfile = () => {
                   onChange={handleChange}
                 />
               </div>
-
               <div className="tab-item-row">
                 <div className="tab-item">
                   <label>Country</label>
@@ -458,7 +513,6 @@ const MyProfile = () => {
                   />
                 </div>
               </div>
-
               <div className="tab-item-row">
                 <div className="tab-item">
                   <label>District</label>
@@ -477,7 +531,6 @@ const MyProfile = () => {
                   />
                 </div>
               </div>
-
               <div className="tab-item-row">
                 <div className="tab-item">
                   <label>Building No</label>
@@ -496,7 +549,6 @@ const MyProfile = () => {
                   />
                 </div>
               </div>
-
               <div className="tab-item-row">
                 <div className="tab-item">
                   <label>Street</label>
@@ -516,7 +568,6 @@ const MyProfile = () => {
                   />
                 </div>
               </div>
-
               <div className="tab-item">
                 <label>Additional Info</label>
                 <textarea
@@ -526,7 +577,6 @@ const MyProfile = () => {
                   onChange={handleChange}
                 />
               </div>
-
               <div className="tab-item">
                 <button onClick={handleAddOrUpdateAddress}>
                   {editingIndex !== null ? "Update Address" : "Add Address"}
@@ -536,15 +586,66 @@ const MyProfile = () => {
           </div>
         )}
 
+        {/* Products Tab */}
         {activeIndex === 1 && (
-          <div className="tab-section-container">Favorites</div>
+          <div className="tab-section-container">
+            <div className="my-products-wrapper">
+              <div className="my-product-card-container">
+                {myProducts?.map((product) => (
+                  <div
+                    key={product.id}
+                    className="my-product-card"
+                    onClick={() => navigate(`/product/${product.id}`)}
+                  >
+                    <img
+                      src={product.images[0]}
+                      alt="Product"
+                      className="my-product-image"
+                    />
+                    <div className="my-product-text-box">
+                      <p className="my-product-title">{product.title}</p>
+                      <p className="my-product-favorite-count">
+                        Favorited {product.favorite_count} time
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
+
         {activeIndex === 2 && (
           <div className="tab-section-container">Orders</div>
         )}
+
         {activeIndex === 3 && (
-          <div className="tab-section-container">Addresses</div>
+          <div className="tab-section-container">
+            <div className="favorite-products-container">
+              {favorites?.map((product) => (
+                <div
+                  className="favorite-product-card"
+                  key={product.id}
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
+                  <img
+                    src={product.images[0]}
+                    alt="Product"
+                    className="favorite-product-image"
+                    loading="lazy"
+                  />
+                  <div className="favorite-product-text-box">
+                    <p className="favorite-product-title">{product.title}</p>
+                    <p className="favorite-product-favorite-count">
+                      Favorited {product.favorite_count} time
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
+
         {activeIndex === 4 && (
           <div className="tab-section-container">Settings</div>
         )}

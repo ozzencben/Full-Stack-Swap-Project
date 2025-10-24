@@ -157,4 +157,132 @@ router.get("/me", auth, async (req, res, next) => {
   }
 });
 
+router.get("/:id", async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const user = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    res.status(200).json({ success: true, user: user.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Profil resmi değiştirme
+router.put(
+  "/change-profile-image",
+  auth,
+  upload.single("profile_image"), // FormData key
+  async (req, res, next) => {
+    try {
+      if (!req.file)
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded" });
+
+      // Cloudinary'ye yükle
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images",
+        public_id: `${req.user.id}_${Date.now()}`,
+        overwrite: true,
+      });
+
+      // DB'ye kaydet
+      const user = await pool.query(
+        "UPDATE users SET profile_image = $1 WHERE id = $2 RETURNING *",
+        [result.secure_url, req.user.id]
+      );
+
+      res.status(200).json({ success: true, user: user.rows[0] });
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
+);
+
+// Profil güncelleme (username, email, vb)
+router.put("/update-profile", auth, async (req, res, next) => {
+  const { username, firstname, lastname, email } = req.body;
+  try {
+    const user = await pool.query(
+      "UPDATE users SET username = $1, firstname = $2, lastname = $3, email = $4 WHERE id = $5 RETURNING *",
+      [username, firstname, lastname, email, req.user.id]
+    );
+    res.status(200).json({ success: true, user: user.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/check-email", async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
+  }
+
+  try {
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+    const user = userResult.rows[0];
+
+    if (user) {
+      return res.status(200).json({
+        success: false,
+        message: "Email already exists",
+        available: false,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Email is available",
+      available: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ================= CHECK USERNAME =================
+router.post("/check-username", async (req, res, next) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({
+      success: false,
+      message: "Username is required",
+    });
+  }
+
+  try {
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [username]
+    );
+    const user = userResult.rows[0];
+
+    if (user) {
+      return res.status(200).json({
+        success: false,
+        message: "Username already exists",
+        available: false,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Username is available",
+      available: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

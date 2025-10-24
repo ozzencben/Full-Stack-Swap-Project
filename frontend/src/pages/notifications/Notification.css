@@ -1,0 +1,142 @@
+.notification-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.notifications {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 🔹 Bildirim kartı */
+.notification-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notification-item.unread {
+  background-color: #e8f1ff; /* açık mavi arka plan */
+  border-left: 4px solid #3b82f6; /* mavi şerit efekti */
+}
+
+.notification-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 🔹 Sol taraftaki içerik (profil + mesaj) */
+.item-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 80%;
+}
+
+/* 🔹 Gönderen bilgileri */
+.sender-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sender-profile-image {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e5e7eb;
+}
+
+.sender-user-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sender-user-icon {
+  font-size: 22px;
+  color: #6b7280;
+}
+
+.sender-username {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111827;
+  cursor: pointer;
+}
+
+.sender-username:hover {
+  text-decoration: underline;
+}
+
+/* 🔹 Mesaj metni */
+.item-box p {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 🔹 Bildirim zamanı */
+.notification-time {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+/* 🔹 Boş bildirim durumu */
+.item-box p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.notification-message {
+  cursor: pointer;
+}
+
+.notification-message:hover {
+  text-decoration: underline;
+}
+
+/* 🔹 Responsive ayarlar */
+@media (max-width: 480px) {
+  .notification-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .notification-time {
+    align-self: flex-end;
+  }
+
+  .sender-username {
+    font-size: 14px;
+  }
+
+  .item-box p {
+    font-size: 13px;
+  }
+}
