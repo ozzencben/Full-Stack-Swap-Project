@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.76.1",
     "axios": "^1.12.2",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",

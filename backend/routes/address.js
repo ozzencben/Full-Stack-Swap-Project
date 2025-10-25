@@ -1,120 +1,125 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
-const { pool } = require("../config/db");
+const { supabase } = require("../supabaseClient");
 
-// Add a new address
+// ======================== ADD ADDRESS ========================
 router.post("/add", auth, async (req, res, next) => {
-  
-  const {
-    title,
-    full_name,
-    phone_number,
-    country,
-    city,
-    district,
-    neighborhood,
-    street,
-    building_no,
-    apartment_no,
-    postal_code,
-    additional_info,
-  } = req.body;
-
-  const user_id = req.user.id;
-  console.log("REQ USER:", req.user);
-
-  if (
-    !title ||
-    !full_name ||
-    !phone_number ||
-    !country ||
-    !city ||
-    !district ||
-    !street ||
-    !building_no ||
-    !apartment_no ||
-    !postal_code
-  ) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Please include all required fields" });
-  }
-
   try {
-    const newAddress = await pool.query(
-      `INSERT INTO addresses 
-      (user_id, title, full_name, phone_number, country, city, district, neighborhood, street, building_no, apartment_no, postal_code, additional_info)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-      RETURNING *`,
-      [
-        user_id,
-        title,
-        full_name,
-        phone_number,
-        country,
-        city,
-        district,
-        neighborhood,
-        street,
-        building_no,
-        apartment_no,
-        postal_code,
-        additional_info || "",
-      ]
-    );
+    const {
+      title,
+      full_name,
+      phone_number,
+      country,
+      city,
+      district,
+      neighborhood,
+      street,
+      building_no,
+      apartment_no,
+      postal_code,
+      additional_info,
+    } = req.body;
+
+    const user_id = req.user.id;
+
+    if (
+      !title ||
+      !full_name ||
+      !phone_number ||
+      !country ||
+      !city ||
+      !district ||
+      !street ||
+      !building_no ||
+      !apartment_no ||
+      !postal_code
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Please include all required fields",
+        });
+    }
+
+    const { data, error } = await supabase
+      .from("addresses")
+      .insert([
+        {
+          user_id,
+          title,
+          full_name,
+          phone_number,
+          country,
+          city,
+          district,
+          neighborhood,
+          street,
+          building_no,
+          apartment_no,
+          postal_code,
+          additional_info: additional_info || "",
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
       message: "Address added successfully",
-      address: newAddress.rows[0],
+      address: data,
     });
   } catch (error) {
+    console.error("Error in POST /add:", error);
     next(error);
   }
 });
 
-// Get all addresses of user
+// ======================== GET USER ADDRESSES ========================
 router.get("/", auth, async (req, res, next) => {
   try {
-    const addresses = await pool.query(
-      "SELECT * FROM addresses WHERE user_id = $1 ORDER BY created_at DESC",
-      [req.user.id]
-    );
-    res.status(200).json({ success: true, addresses: addresses.rows });
+    const { data, error } = await supabase
+      .from("addresses")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, addresses: data });
   } catch (error) {
+    console.error("Error in GET /addresses:", error);
     next(error);
   }
 });
 
-// Update an address
+// ======================== UPDATE ADDRESS ========================
 router.put("/update/:id", auth, async (req, res, next) => {
-  const { id } = req.params;
-  const user_id = req.user.id;
-  const {
-    title,
-    full_name,
-    phone_number,
-    country,
-    city,
-    district,
-    neighborhood,
-    street,
-    building_no,
-    apartment_no,
-    postal_code,
-    additional_info,
-  } = req.body;
-
   try {
-    const updatedAddress = await pool.query(
-      `UPDATE addresses 
-       SET title=$1, full_name=$2, phone_number=$3, country=$4, city=$5, 
-           district=$6, neighborhood=$7, street=$8, building_no=$9, 
-           apartment_no=$10, postal_code=$11, additional_info=$12
-       WHERE id=$13 AND user_id=$14
-       RETURNING *`,
-      [
+    const { id } = req.params;
+    const user_id = req.user.id;
+
+    const {
+      title,
+      full_name,
+      phone_number,
+      country,
+      city,
+      district,
+      neighborhood,
+      street,
+      building_no,
+      apartment_no,
+      postal_code,
+      additional_info,
+    } = req.body;
+
+    const { data, error } = await supabase
+      .from("addresses")
+      .update({
         title,
         full_name,
         phone_number,
@@ -127,12 +132,15 @@ router.put("/update/:id", auth, async (req, res, next) => {
         apartment_no,
         postal_code,
         additional_info,
-        id,
-        user_id,
-      ]
-    );
+      })
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .select()
+      .single();
 
-    if (!updatedAddress.rows[0])
+    if (error) throw error;
+
+    if (!data)
       return res
         .status(404)
         .json({ success: false, message: "Address not found or unauthorized" });
@@ -140,74 +148,92 @@ router.put("/update/:id", auth, async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Address updated successfully",
-      address: updatedAddress.rows[0],
+      address: data,
     });
   } catch (error) {
+    console.error("Error in PUT /update/:id:", error);
     next(error);
   }
 });
 
-// Delete an address
+// ======================== DELETE ADDRESS ========================
 router.delete("/delete/:id", auth, async (req, res, next) => {
-  const { id } = req.params;
-  const user_id = req.user.id;
-
   try {
-    const deletedAddress = await pool.query(
-      "DELETE FROM addresses WHERE id=$1 AND user_id=$2 RETURNING *",
-      [id, user_id]
-    );
+    const { id } = req.params;
+    const user_id = req.user.id;
 
-    if (!deletedAddress.rows[0])
+    // Adres sil
+    const { data: deletedAddress, error } = await supabase
+      .from("addresses")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!deletedAddress)
       return res
         .status(404)
         .json({ success: false, message: "Address not found or unauthorized" });
 
     // Eğer silinen adres primary id ise users tablosunu güncelle
-    await pool.query(
-      "UPDATE users SET primary_address_id=NULL WHERE id=$1 AND primary_address_id=$2",
-      [user_id, id]
-    );
+    await supabase
+      .from("users")
+      .update({ primary_address_id: null })
+      .eq("id", user_id)
+      .eq("primary_address_id", id);
 
     res.status(200).json({
       success: true,
       message: "Address deleted successfully",
-      address: deletedAddress.rows[0],
+      address: deletedAddress,
     });
   } catch (error) {
+    console.error("Error in DELETE /delete/:id:", error);
     next(error);
   }
 });
 
-// Set primary address (users table)
+// ======================== SET PRIMARY ADDRESS ========================
 router.post("/primary/:id", auth, async (req, res, next) => {
-  const { id } = req.params;
-  const user_id = req.user.id;
-
   try {
-    // Adresin kullanıcıya ait olup olmadığını kontrol et
-    const addressCheck = await pool.query(
-      "SELECT * FROM addresses WHERE id=$1 AND user_id=$2",
-      [id, user_id]
-    );
+    const { id } = req.params;
+    const user_id = req.user.id;
 
-    if (!addressCheck.rows[0])
+    // Adresin kullanıcıya ait olup olmadığını kontrol et
+    const { data: addressCheck, error: checkError } = await supabase
+      .from("addresses")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") throw checkError;
+
+    if (!addressCheck)
       return res
         .status(404)
         .json({ success: false, message: "Address not found or unauthorized" });
 
     // users tablosuna primary_address_id olarak set et
-    const updatedUser = await pool.query(
-      "UPDATE users SET primary_address_id=$1 WHERE id=$2 RETURNING *",
-      [id, user_id]
-    );
+    const { data: updatedUser, error } = await supabase
+      .from("users")
+      .update({ primary_address_id: id })
+      .eq("id", user_id)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
       message: "Primary address set successfully",
-      user: updatedUser.rows[0],
+      user: updatedUser,
     });
   } catch (error) {
+    console.error("Error in POST /primary/:id:", error);
     next(error);
   }
 });

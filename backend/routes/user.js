@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { pool } = require("../config/db");
+const { supabase } = require("../supabaseClient");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth");
@@ -19,31 +19,40 @@ router.post("/register", async (req, res, next) => {
   }
 
   try {
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE email = $1 OR username = $2",
-      [email, username]
-    );
+    const { data: existingUser, error: selectError } = await supabase
+      .from("users")
+      .select("*")
+      .or(`email.eq.${email},username.eq.${username}`)
+      .maybeSingle();
 
-    if (existingUser.rows.length > 0) {
+    if (existingUser) {
       return res
         .status(400)
         .json({ success: false, message: "User already exists" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await pool.query(
-      `INSERT INTO users (username, firstname, lastname, email, password)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, username, firstname, lastname, email`,
-      [username, firstname, lastname, email, hashedPassword]
-    );
+    const { data: newUser, error: insertError } = await supabase
+      .from("users")
+      .insert([
+        {
+          username,
+          firstname,
+          lastname,
+          email,
+          password: hashedPassword,
+        },
+      ])
+      .select("id, username, firstname, lastname, email")
+      .single();
+
+    if (insertError) throw insertError;
 
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      user: newUser.rows[0],
+      user: newUser,
     });
   } catch (error) {
     next(error);
@@ -61,49 +70,57 @@ router.post("/login", async (req, res, next) => {
   }
 
   try {
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE email = $1 OR username = $2",
-      [identifier, identifier]
-    );
+    const { data: existingUser, error } = await supabase
+      .from("users")
+      .select("*")
+      .or(`email.eq.${identifier},username.eq.${identifier}`)
+      .maybeSingle();
 
-    if (existingUser.rows.length === 0) {
+    if (!existingUser) {
       return res
         .status(400)
         .json({ success: false, message: "User does not exist" });
     }
 
-    const user = existingUser.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-
+    const isMatch = await bcrypt.compare(password, existingUser.password);
     if (!isMatch) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const accessToken = jwt.sign(
+      { id: existingUser.id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
 
-    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH, {
-      expiresIn: "7d",
-    });
+    const refreshToken = jwt.sign(
+      { id: existingUser.id },
+      process.env.JWT_REFRESH,
+      {
+        expiresIn: "7d",
+      }
+    );
 
-    await pool.query("UPDATE users SET refresh_token = $1 WHERE id = $2", [
-      refreshToken,
-      user.id,
-    ]);
+    // Refresh token Supabase'de güncelle
+    await supabase
+      .from("users")
+      .update({ refresh_token: refreshToken })
+      .eq("id", existingUser.id);
 
     res.status(200).json({
       success: true,
       message: "User logged in successfully",
       user: {
-        id: user.id,
-        username: user.username,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        profile_image: user.profile_image,
+        id: existingUser.id,
+        username: existingUser.username,
+        firstname: existingUser.firstname,
+        lastname: existingUser.lastname,
+        email: existingUser.email,
+        profile_image: existingUser.profile_image,
       },
       accessToken,
       refreshToken,
@@ -116,19 +133,18 @@ router.post("/login", async (req, res, next) => {
 // REFRESH TOKEN
 router.post("/refresh-token", async (req, res, next) => {
   const { token } = req.body;
-  if (!token) {
+  if (!token)
     return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
 
   try {
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE refresh_token = $1",
-      [token]
-    );
-    const user = userResult.rows[0];
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("refresh_token", token)
+      .maybeSingle();
+
+    if (!user)
       return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
 
     const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
@@ -148,10 +164,13 @@ router.post("/refresh-token", async (req, res, next) => {
 // GET CURRENT USER
 router.get("/me", auth, async (req, res, next) => {
   try {
-    const user = await pool.query("SELECT * FROM users WHERE id = $1", [
-      req.user.id,
-    ]);
-    res.status(200).json({ success: true, user: user.rows[0] });
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", req.user.id)
+      .maybeSingle();
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
     next(error);
   }
@@ -160,8 +179,13 @@ router.get("/me", auth, async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   const { id } = req.params;
   try {
-    const user = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
-    res.status(200).json({ success: true, user: user.rows[0] });
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
     next(error);
   }
@@ -171,7 +195,7 @@ router.get("/:id", async (req, res, next) => {
 router.put(
   "/change-profile-image",
   auth,
-  upload.single("profile_image"), // FormData key
+  upload.single("profile_image"),
   async (req, res, next) => {
     try {
       if (!req.file)
@@ -179,107 +203,108 @@ router.put(
           .status(400)
           .json({ success: false, message: "No file uploaded" });
 
-      // Cloudinary'ye yükle
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "profile_images",
         public_id: `${req.user.id}_${Date.now()}`,
         overwrite: true,
       });
 
-      // DB'ye kaydet
-      const user = await pool.query(
-        "UPDATE users SET profile_image = $1 WHERE id = $2 RETURNING *",
-        [result.secure_url, req.user.id]
-      );
+      const { data: user, error } = await supabase
+        .from("users")
+        .update({ profile_image: result.secure_url })
+        .eq("id", req.user.id)
+        .select("*")
+        .maybeSingle();
 
-      res.status(200).json({ success: true, user: user.rows[0] });
+      res.status(200).json({ success: true, user });
     } catch (error) {
-      console.error(error);
       next(error);
     }
   }
 );
 
-// Profil güncelleme (username, email, vb)
+// Profil güncelleme
 router.put("/update-profile", auth, async (req, res, next) => {
   const { username, firstname, lastname, email } = req.body;
   try {
-    const user = await pool.query(
-      "UPDATE users SET username = $1, firstname = $2, lastname = $3, email = $4 WHERE id = $5 RETURNING *",
-      [username, firstname, lastname, email, req.user.id]
-    );
-    res.status(200).json({ success: true, user: user.rows[0] });
+    const { data: user, error } = await supabase
+      .from("users")
+      .update({ username, firstname, lastname, email })
+      .eq("id", req.user.id)
+      .select("*")
+      .maybeSingle();
+
+    res.status(200).json({ success: true, user });
   } catch (error) {
     next(error);
   }
 });
 
+// CHECK EMAIL
 router.post("/check-email", async (req, res, next) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({
-      success: false,
-      message: "Email is required",
-    });
-  }
+  if (!email)
+    return res
+      .status(400)
+      .json({ success: false, message: "Email is required" });
 
   try {
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-    const user = userResult.rows[0];
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
 
     if (user) {
-      return res.status(200).json({
-        success: false,
-        message: "Email already exists",
-        available: false,
-      });
+      return res
+        .status(200)
+        .json({
+          success: false,
+          message: "Email already exists",
+          available: false,
+        });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Email is available",
-      available: true,
-    });
+    res
+      .status(200)
+      .json({ success: true, message: "Email is available", available: true });
   } catch (error) {
     next(error);
   }
 });
 
-// ================= CHECK USERNAME =================
+// CHECK USERNAME
 router.post("/check-username", async (req, res, next) => {
   const { username } = req.body;
-
-  if (!username) {
-    return res.status(400).json({
-      success: false,
-      message: "Username is required",
-    });
-  }
+  if (!username)
+    return res
+      .status(400)
+      .json({ success: false, message: "Username is required" });
 
   try {
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE username = $1",
-      [username]
-    );
-    const user = userResult.rows[0];
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("username", username)
+      .maybeSingle();
 
     if (user) {
-      return res.status(200).json({
-        success: false,
-        message: "Username already exists",
-        available: false,
-      });
+      return res
+        .status(200)
+        .json({
+          success: false,
+          message: "Username already exists",
+          available: false,
+        });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Username is available",
-      available: true,
-    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Username is available",
+        available: true,
+      });
   } catch (error) {
     next(error);
   }

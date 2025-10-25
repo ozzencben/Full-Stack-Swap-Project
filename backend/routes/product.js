@@ -1,11 +1,11 @@
 require("dotenv").config();
 const express = require("express");
 const router = express.Router();
-const { pool } = require("../config/db");
 const auth = require("../middleware/auth");
 const authOptional = require("../middleware/authOptional");
 const { cloudinary, upload } = require("../config/cloudinary");
 const fs = require("fs");
+const { supabase } = require("../supabaseClient");
 
 // ======================== CREATE PRODUCT ========================
 router.post("/", auth, upload.array("images", 5), async (req, res, next) => {
@@ -46,28 +46,32 @@ router.post("/", auth, upload.array("images", 5), async (req, res, next) => {
       await fs.promises.unlink(file.path);
     }
 
-    const query = await pool.query(
-      `INSERT INTO products
-      (title, description, price, category_id, condition_id, status_id, user_id, images)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [
-        title,
-        description,
-        price,
-        category_id,
-        condition_id,
-        status_id,
-        user_id,
-        uploadedImages,
-      ]
-    );
+    const { data, error } = await supabase
+      .from("products")
+      .insert([
+        {
+          title,
+          description,
+          price: parseFloat(price),
+          category_id,
+          condition_id,
+          status_id,
+          user_id,
+          images: uploadedImages,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      product: query.rows[0],
+      product: data,
     });
   } catch (err) {
+    console.error(err);
     next(err);
   }
 });
@@ -83,66 +87,33 @@ router.get("/", authOptional, async (req, res, next) => {
     let { category_id, condition_id, status_id, search } = req.query;
     const favorite = req.query.favorite === "true";
 
-    let values = [];
-    let index = 1;
-    let filters = [];
+    let query = supabase.from("products").select("*");
 
-    if (user_id) {
-      filters.push(`p.user_id != $${index++}`);
-      values.push(user_id);
-    }
-
-    // "all" veya boş değer geldiğinde filtreleme yapma
-    if (category_id && category_id !== "all") {
-      filters.push(`p.category_id = $${index++}`);
-      values.push(category_id);
-    }
-    if (condition_id && condition_id !== "all") {
-      filters.push(`p.condition_id = $${index++}`);
-      values.push(condition_id);
-    }
-    if (status_id && status_id !== "all") {
-      filters.push(`p.status_id = $${index++}`);
-      values.push(status_id);
-    }
-
+    if (user_id) query = query.neq("user_id", user_id);
+    if (category_id && category_id !== "all")
+      query = query.eq("category_id", category_id);
+    if (condition_id && condition_id !== "all")
+      query = query.eq("condition_id", condition_id);
+    if (status_id && status_id !== "all")
+      query = query.eq("status_id", status_id);
     if (search) {
-      filters.push(
-        `(p.title ILIKE $${index} OR p.description ILIKE $${index})`
-      );
-      values.push(`%${search}%`);
-      index++;
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    let whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
+    query = query
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    let joinClause = "";
-    if (favorite && user_id) {
-      joinClause = `INNER JOIN favorites f ON f.product_id = p.id AND f.user_id = $${index}`;
-      values.push(user_id);
-      index++;
-    }
-
-    // Toplam ürün sayısı
-    const totalQuery = await pool.query(
-      `SELECT COUNT(*) FROM products p ${joinClause} ${whereClause}`,
-      values
-    );
-    const total = parseInt(totalQuery.rows[0].count, 10);
-
-    // Ürünleri getir
-    const productsQuery = await pool.query(
-      `SELECT p.* FROM products p ${joinClause} ${whereClause} ORDER BY p.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
-      values
-    );
+    const { data: products, error, count } = await query;
+    if (error) throw error;
 
     res.json({
       success: true,
-      products: productsQuery.rows,
+      products: products || [],
       page,
       limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      total: count || products?.length || 0,
+      totalPages: Math.ceil((count || products?.length || 0) / limit),
     });
   } catch (err) {
     console.error(err);
@@ -154,25 +125,35 @@ router.get("/", authOptional, async (req, res, next) => {
 router.get("/my-products", auth, async (req, res, next) => {
   try {
     const user_id = req.user.id;
-    const products = await pool.query(
-      "SELECT * FROM products WHERE user_id=$1 ORDER BY created_at DESC",
-      [user_id]
-    );
-    res.json({ success: true, products: products.rows });
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, products: data });
   } catch (err) {
     next(err);
   }
 });
 
-// ======================== USER FAVORITES (⚠️ öncelikli olmalı) ========================
+// ======================== USER FAVORITES ========================
 router.get("/favorites", auth, async (req, res, next) => {
   try {
     const user_id = req.user.id;
-    const favoritesQuery = await pool.query(
-      `SELECT p.* FROM products p INNER JOIN favorites f ON f.product_id = p.id WHERE f.user_id=$1 ORDER BY f.created_at DESC`,
-      [user_id]
-    );
-    res.json({ success: true, favorites: favoritesQuery.rows });
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("product_id, products(*)")
+      .eq("user_id", user_id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      favorites: data.map((f) => f.products),
+    });
   } catch (err) {
     next(err);
   }
@@ -181,8 +162,9 @@ router.get("/favorites", auth, async (req, res, next) => {
 // ======================== META ROUTES ========================
 router.get("/meta/categories", async (req, res, next) => {
   try {
-    const categories = await pool.query("SELECT * FROM categories");
-    res.json({ success: true, categories: categories.rows });
+    const { data, error } = await supabase.from("categories").select("*");
+    if (error) throw error;
+    res.json({ success: true, categories: data });
   } catch (err) {
     next(err);
   }
@@ -190,8 +172,11 @@ router.get("/meta/categories", async (req, res, next) => {
 
 router.get("/meta/conditions", async (req, res, next) => {
   try {
-    const conditions = await pool.query("SELECT * FROM product_conditions");
-    res.json({ success: true, conditions: conditions.rows });
+    const { data, error } = await supabase
+      .from("product_conditions")
+      .select("*");
+    if (error) throw error;
+    res.json({ success: true, conditions: data });
   } catch (err) {
     next(err);
   }
@@ -199,8 +184,9 @@ router.get("/meta/conditions", async (req, res, next) => {
 
 router.get("/meta/statuses", async (req, res, next) => {
   try {
-    const statuses = await pool.query("SELECT * FROM product_statuses");
-    res.json({ success: true, statuses: statuses.rows });
+    const { data, error } = await supabase.from("product_statuses").select("*");
+    if (error) throw error;
+    res.json({ success: true, statuses: data });
   } catch (err) {
     next(err);
   }
@@ -210,11 +196,14 @@ router.get("/meta/:id/is-favorite", auth, async (req, res, next) => {
   try {
     const user_id = req.user.id;
     const product_id = req.params.id;
-    const result = await pool.query(
-      "SELECT 1 FROM favorites WHERE user_id=$1 AND product_id=$2",
-      [user_id, product_id]
-    );
-    res.json({ success: true, isFavorite: result.rows.length > 0 });
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("product_id", product_id);
+    if (error) throw error;
+
+    res.json({ success: true, isFavorite: data.length > 0 });
   } catch (err) {
     next(err);
   }
@@ -225,22 +214,17 @@ router.post("/:id/favorite", auth, async (req, res, next) => {
   try {
     const user_id = req.user.id;
     const product_id = req.params.id;
-    const senderUser = await pool.query("SELECT * FROM users WHERE id=$1", [
-      user_id,
-    ]);
-    const senderUsername = senderUser.rows[0].username;
 
-    const productQuery = await pool.query(
-      "SELECT * FROM products WHERE id=$1",
-      [product_id]
-    );
-    if (!productQuery.rows.length)
+    const { data: product, error: productErr } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", product_id)
+      .single();
+
+    if (productErr || !product)
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
-
-    const product = productQuery.rows[0];
-    const product_title = product.title;
 
     if (product.user_id === user_id)
       return res.status(403).json({
@@ -248,23 +232,26 @@ router.post("/:id/favorite", auth, async (req, res, next) => {
         message: "You cannot favorite your own product",
       });
 
-    const exists = await pool.query(
-      "SELECT * FROM favorites WHERE user_id=$1 AND product_id=$2",
-      [user_id, product_id]
-    );
-    if (exists.rows.length)
-      return res
-        .status(400)
-        .json({ success: false, message: "Product already favorited" });
+    const { data: exists } = await supabase
+      .from("favorites")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("product_id", product_id);
 
-    await pool.query(
-      "INSERT INTO favorites (user_id, product_id) VALUES ($1,$2)",
-      [user_id, product_id]
-    );
-    await pool.query(
-      "UPDATE products SET favorite_count=favorite_count+1 WHERE id=$1",
-      [product_id]
-    );
+    if (exists.length)
+      return res.status(400).json({
+        success: false,
+        message: "Product already favorited",
+      });
+
+    const { error: insertErr } = await supabase
+      .from("favorites")
+      .insert([{ user_id, product_id }]);
+    if (insertErr) throw insertErr;
+
+    await supabase.rpc("increment_favorite_count", {
+      product_id_param: product_id,
+    });
 
     res.json({ success: true, message: "Product added to favorites" });
   } catch (err) {
@@ -277,23 +264,27 @@ router.delete("/:id/favorite", auth, async (req, res, next) => {
     const user_id = req.user.id;
     const product_id = req.params.id;
 
-    const exists = await pool.query(
-      "SELECT * FROM favorites WHERE user_id=$1 AND product_id=$2",
-      [user_id, product_id]
-    );
-    if (!exists.rows.length)
+    const { data: exists } = await supabase
+      .from("favorites")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("product_id", product_id);
+
+    if (!exists.length)
       return res
         .status(400)
         .json({ success: false, message: "Product is not in favorites" });
 
-    await pool.query(
-      "DELETE FROM favorites WHERE user_id=$1 AND product_id=$2",
-      [user_id, product_id]
-    );
-    await pool.query(
-      "UPDATE products SET favorite_count=favorite_count-1 WHERE id=$1",
-      [product_id]
-    );
+    const { error } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("user_id", user_id)
+      .eq("product_id", product_id);
+    if (error) throw error;
+
+    await supabase.rpc("decrement_favorite_count", {
+      product_id_param: product_id,
+    });
 
     res.json({ success: true, message: "Product removed from favorites" });
   } catch (err) {
@@ -304,14 +295,18 @@ router.delete("/:id/favorite", auth, async (req, res, next) => {
 // ======================== SINGLE PRODUCT ========================
 router.get("/:id", async (req, res, next) => {
   try {
-    const product = await pool.query("SELECT * FROM products WHERE id=$1", [
-      req.params.id,
-    ]);
-    if (!product.rows.length)
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !data)
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
-    res.json({ success: true, product: product.rows[0] });
+
+    res.json({ success: true, product: data });
   } catch (err) {
     next(err);
   }
@@ -325,17 +320,20 @@ router.put("/:id", auth, upload.array("images", 5), async (req, res, next) => {
     const { title, description, price, category_id, condition_id, status_id } =
       req.body;
 
-    const productQuery = await pool.query(
-      "SELECT * FROM products WHERE id=$1 AND user_id=$2",
-      [id, user_id]
-    );
-    if (!productQuery.rows.length)
+    const { data: product, error: productErr } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (productErr || !product)
       return res.status(403).json({
         success: false,
         message: "Not authorized to update this product",
       });
 
-    let updatedImages = productQuery.rows[0].images;
+    let updatedImages = product.images;
     if (req.files && req.files.length > 0) {
       updatedImages = [];
       for (const file of req.files) {
@@ -347,24 +345,28 @@ router.put("/:id", auth, upload.array("images", 5), async (req, res, next) => {
       }
     }
 
-    const updatedProductQuery = await pool.query(
-      `UPDATE products SET title=$1, description=$2, price=$3, category_id=$4, condition_id=$5, status_id=$6, images=$7, updated_at=NOW() WHERE id=$8 RETURNING *`,
-      [
+    const { data: updated, error: updateErr } = await supabase
+      .from("products")
+      .update({
         title,
         description,
-        price,
+        price: parseFloat(price),
         category_id,
         condition_id,
         status_id,
-        updatedImages,
-        id,
-      ]
-    );
+        images: updatedImages,
+        updated_at: new Date(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
 
     res.json({
       success: true,
       message: "Product updated successfully",
-      product: updatedProductQuery.rows[0],
+      product: updated,
     });
   } catch (err) {
     next(err);
@@ -377,17 +379,22 @@ router.delete("/:id", auth, async (req, res, next) => {
     const { id } = req.params;
     const user_id = req.user.id;
 
-    const productQuery = await pool.query(
-      "SELECT * FROM products WHERE id=$1 AND user_id=$2",
-      [id, user_id]
-    );
-    if (!productQuery.rows.length)
+    const { data: product, error: productErr } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (productErr || !product)
       return res.status(403).json({
         success: false,
         message: "Not authorized to delete this product",
       });
 
-    await pool.query("DELETE FROM products WHERE id=$1", [id]);
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) throw error;
+
     res.json({ success: true, message: "Product deleted successfully" });
   } catch (err) {
     next(err);

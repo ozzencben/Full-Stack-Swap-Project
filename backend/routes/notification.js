@@ -1,31 +1,40 @@
 const express = require("express");
 const router = express.Router();
-const { pool } = require("../config/db");
+const { supabase } = require("../supabaseClient");
 const auth = require("../middleware/auth");
 const { onlineUsers, getIO } = require("../config/socket");
 require("../middleware/error");
 
-// Bildirim oluştur ve gönder
+// ======================== CREATE NOTIFICATION ========================
 router.post("/", auth, async (req, res, next) => {
   try {
     const { receiver_id, type, message, metadata } = req.body;
     const sender_id = req.user.id;
 
-    // Metadata JSON parse (eğer string gelirse)
     let meta = null;
     if (metadata) {
       meta = typeof metadata === "string" ? JSON.parse(metadata) : metadata;
     }
 
-    const newNotification = await pool.query(
-      `INSERT INTO notifications (sender_id, receiver_id, type, message, metadata)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [sender_id, receiver_id, type, message, meta]
-    );
+    const { data, error } = await supabase
+      .from("notifications")
+      .insert([
+        {
+          sender_id,
+          receiver_id,
+          type,
+          message,
+          metadata: meta,
+        },
+      ])
+      .select()
+      .single();
 
-    const notification = newNotification.rows[0];
+    if (error) throw error;
 
-    // Socket.io ile anlık bildirim
+    const notification = data;
+
+    // Socket.io ile anlık bildirim gönder
     const io = getIO();
     const targetSocketId = onlineUsers.get(String(receiver_id));
     if (targetSocketId) {
@@ -43,7 +52,7 @@ router.post("/", auth, async (req, res, next) => {
   }
 });
 
-// Kullanıcının bildirimlerini getir
+// ======================== GET USER NOTIFICATIONS ========================
 router.get("/", auth, async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -51,67 +60,75 @@ router.get("/", auth, async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
 
-    const notifications = await pool.query(
-      `SELECT * FROM notifications
-       WHERE receiver_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [userId, limit, offset]
-    );
+    const { data: notifications, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("receiver_id", userId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // Toplam sayıyı da dönebilirsin, optional
-    const totalRes = await pool.query(
-      `SELECT COUNT(*) FROM notifications WHERE receiver_id = $1`,
-      [userId]
-    );
-    const total = parseInt(totalRes.rows[0].count);
+    if (error) throw error;
 
-    res.json({ success: true, notifications: notifications.rows, total });
+    const { count, error: countError } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("receiver_id", userId);
+
+    if (countError) throw countError;
+
+    res.json({
+      success: true,
+      notifications,
+      total: count,
+    });
   } catch (err) {
     console.error("Error in GET /notifications:", err);
     next(err);
   }
 });
 
-// Bildirimi okundu olarak işaretle
+// ======================== MARK AS READ ========================
 router.put("/:id", auth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `UPDATE notifications
-       SET is_read = true
-       WHERE id = $1
-       RETURNING *`,
-      [id]
-    );
+    const { data, error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", id)
+      .select()
+      .single();
 
-    if (result.rows.length === 0) {
+    if (error) throw error;
+
+    if (!data) {
       return res
         .status(404)
         .json({ success: false, message: "Notification not found" });
     }
 
-    res.json({ success: true, notification: result.rows[0] });
+    res.json({ success: true, notification: data });
   } catch (err) {
     console.error("Error in PUT /notifications/:id:", err);
     next(err);
   }
 });
 
-// Bildirimi sil
+// ======================== DELETE NOTIFICATION ========================
 router.delete("/:id", auth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `DELETE FROM notifications
-       WHERE id = $1
-       RETURNING *`,
-      [id]
-    );
+    const { data, error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", id)
+      .select()
+      .single();
 
-    if (result.rows.length === 0) {
+    if (error) throw error;
+
+    if (!data) {
       return res
         .status(404)
         .json({ success: false, message: "Notification not found" });
@@ -119,7 +136,7 @@ router.delete("/:id", auth, async (req, res, next) => {
 
     res.json({
       success: true,
-      notification: result.rows[0],
+      notification: data,
       message: "Notification deleted",
     });
   } catch (err) {
