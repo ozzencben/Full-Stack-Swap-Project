@@ -8,54 +8,85 @@ const fs = require("fs");
 const { supabase } = require("../supabaseClient");
 
 // ======================== CREATE PRODUCT ========================
-router.post("/", auth, upload.array("images", 5), async (req, res, next) => {
+router.post("/", auth, upload.array("images", 5), async (req, res) => {
   try {
     const { title, description, price, category_id, condition_id, status_id } =
       req.body;
     const user_id = req.user.id;
 
-    if (
-      !title ||
-      !description ||
-      !price ||
-      !category_id ||
-      !condition_id ||
-      !status_id
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please include all fields" });
-    }
-    if (isNaN(price)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Price must be a number" });
-    }
-    if (!req.files || req.files.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please upload at least one image" });
+    // ------------------- Gerekli alanlar kontrolü -------------------
+    if (!title || !description || !price) {
+      console.error("Missing required fields in request body:", req.body);
+      return res.status(400).json({
+        success: false,
+        message: "Please include title, description, and price",
+      });
     }
 
+    if (isNaN(price)) {
+      console.error("Price is not a number:", price);
+      return res.status(400).json({
+        success: false,
+        message: "Price must be a number",
+      });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      console.error("No images uploaded");
+      return res.status(400).json({
+        success: false,
+        message: "Please upload at least one image",
+      });
+    }
+
+    // ------------------- Resimleri Cloudinary'e yükle -------------------
     const uploadedImages = [];
     for (const file of req.files) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "products",
-      });
-      uploadedImages.push(result.secure_url);
-      await fs.promises.unlink(file.path);
+      try {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "products",
+        });
+        uploadedImages.push(result.secure_url);
+        await fs.promises.unlink(file.path);
+      } catch (uploadErr) {
+        console.error("Cloudinary upload error:", uploadErr);
+        return res.status(500).json({
+          success: false,
+          message: "Image upload failed",
+          error: uploadErr.message,
+        });
+      }
     }
 
+    // ------------------- Numeric değerleri parse et ve default ata -------------------
+    const categoryInt = category_id ? parseInt(category_id, 10) : 1; // default kategori
+    const conditionInt = condition_id ? parseInt(condition_id, 10) : 1; // default condition
+    const statusInt = status_id ? parseInt(status_id, 10) : 1; // default status
+    const priceFloat = parseFloat(price);
+
+    // ------------------- Payload logla -------------------
+    console.log("Creating product with payload:", {
+      title,
+      description,
+      price: priceFloat,
+      category_id: categoryInt,
+      condition_id: conditionInt,
+      status_id: statusInt,
+      user_id,
+      images: uploadedImages,
+    });
+
+    // ------------------- Supabase insert -------------------
     const { data, error } = await supabase
       .from("products")
       .insert([
         {
           title,
           description,
-          price: parseFloat(price),
-          category_id,
-          condition_id,
-          status_id,
+          price: priceFloat,
+          category_id: categoryInt,
+          condition_id: conditionInt,
+          status_id: statusInt,
           user_id,
           images: uploadedImages,
         },
@@ -63,16 +94,27 @@ router.post("/", auth, upload.array("images", 5), async (req, res, next) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+        details: error.details,
+      });
+    }
 
+    console.log("Product created successfully:", data);
     res.status(201).json({
       success: true,
       message: "Product created successfully",
       product: data,
     });
   } catch (err) {
-    console.error(err);
-    next(err);
+    console.error("Product create error:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "Internal Server Error",
+    });
   }
 });
 

@@ -22,6 +22,7 @@ router.post("/add", auth, async (req, res, next) => {
     } = req.body;
 
     const user_id = req.user.id;
+    console.log("Trying to add address for user_id:", user_id, req.body);
 
     if (
       !title ||
@@ -35,12 +36,31 @@ router.post("/add", auth, async (req, res, next) => {
       !apartment_no ||
       !postal_code
     ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please include all required fields",
+      });
+    }
+
+    // ------------------- CHECK IF USER EXISTS -------------------
+    const { data: userCheck, error: userCheckErr } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", user_id)
+      .single();
+
+    if (userCheckErr) {
+      console.error("Error checking user in Supabase:", userCheckErr);
+      return res
+        .status(500)
+        .json({ success: false, message: "Database error" });
+    }
+
+    if (!userCheck) {
+      console.warn("User not found for ID:", user_id);
       return res
         .status(400)
-        .json({
-          success: false,
-          message: "Please include all required fields",
-        });
+        .json({ success: false, message: "User not found" });
     }
 
     const { data, error } = await supabase
@@ -65,15 +85,20 @@ router.post("/add", auth, async (req, res, next) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error inserting address:", error);
+      return res.status(500).json({ success: false, message: error.message });
+    }
 
-    res.status(200).json({
+    console.log("Address added successfully:", data);
+
+    res.status(201).json({
       success: true,
       message: "Address added successfully",
       address: data,
     });
   } catch (error) {
-    console.error("Error in POST /add:", error);
+    console.error("Unexpected error in POST /add:", error);
     next(error);
   }
 });
