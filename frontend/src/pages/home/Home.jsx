@@ -105,11 +105,13 @@ const Home = () => {
   useEffect(() => {
     setPage(1);
     fetchAllProducts(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, condition, debouncedSearch]);
 
   // Page arttığında fetch
   useEffect(() => {
     if (page > 1) fetchAllProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // Infinite scroll
@@ -130,10 +132,10 @@ const Home = () => {
   if (initialLoading) return <Loader />;
 
   return (
-    <div className="home-container">
-      <div className="filter-container">
-        <div className="search-bar-container">
-          <div className="search-bar">
+    <div className="swap-home-container">
+      <div className="swap-filter-container">
+        <div className="swap-search-bar-container">
+          <div className="swap-search-bar">
             <input
               type="text"
               placeholder="Search for a product"
@@ -145,10 +147,10 @@ const Home = () => {
 
         {/* Category */}
         <div
-          className="category-filter-container"
+          className="swap-category-filter-container"
           onClick={toggleShowCategoryDropdown}
         >
-          <div className="category-value-box">
+          <div className="swap-category-value-box">
             <input
               placeholder="Select a category"
               readOnly
@@ -161,7 +163,7 @@ const Home = () => {
             {showCategoryDropdown ? <GoChevronUp /> : <GoChevronDown />}
           </div>
           <div
-            className={`category-filter-dropdown ${
+            className={`swap-category-dropdown ${
               showCategoryDropdown ? "show" : ""
             }`}
           >
@@ -196,10 +198,10 @@ const Home = () => {
 
         {/* Condition */}
         <div
-          className="condition-filter-container"
+          className="swap-condition-filter-container"
           onClick={toggleShowConditionDropdown}
         >
-          <div className="condition-value-box">
+          <div className="swap-condition-value-box">
             <input
               placeholder="Select a condition"
               readOnly
@@ -213,7 +215,7 @@ const Home = () => {
             {showConditionDropdown ? <GoChevronUp /> : <GoChevronDown />}
           </div>
           <div
-            className={`condition-filter-dropdown ${
+            className={`swap-condition-dropdown ${
               showConditionDropdown ? "show" : ""
             }`}
           >
@@ -247,7 +249,7 @@ const Home = () => {
         </div>
       </div>
 
-      <div className="product-list">
+      <div className="swap-product-list">
         {products.length > 0 ? (
           products.map((p) => (
             <ProductCard
@@ -257,12 +259,12 @@ const Home = () => {
             />
           ))
         ) : (
-          <div className="no-products">No products found</div>
+          <div className="swap-no-products">No products found</div>
         )}
       </div>
 
-      {loading && <div className="bottom-loader">Loading...</div>}
-      <div ref={loaderRef} className="bottom-loader"></div>
+      {loading && <div className="swap-bottom-loader">Loading...</div>}
+      <div ref={loaderRef} className="swap-bottom-loader"></div>
     </div>
   );
 };

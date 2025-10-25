@@ -1,4 +1,5 @@
-.product-card-container {
+.swap-product-card {
+  display: inline-block; /* masonry için önemli */
   width: 100%;
   break-inside: avoid;
   margin-bottom: 20px;
@@ -9,13 +10,20 @@
   transition: transform 0.2s ease;
 }
 
-.image-box {
+.swap-image-box {
   width: 100%;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
 }
 
-.image-overlay {
+.swap-product-card-image {
+  width: 100%;
+  height: auto; /* dinamik yükseklik */
+  display: block;
+  object-fit: cover;
+}
+
+.swap-image-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -28,16 +36,16 @@
   transform: scaleY(0);
   transition: transform 0.3s ease;
   z-index: 1;
-  transform-origin: top;
   border-radius: 12px;
+  transform-origin: top;
 }
 
-.image-box:hover .image-overlay {
+.swap-image-box:hover .swap-image-overlay {
   transform: scaleY(1);
   transform-origin: bottom;
 }
 
-.image-overlay p {
+.swap-image-overlay p {
   color: #fff;
   font-size: 1rem;
   text-align: center;
@@ -46,70 +54,62 @@
   font-family: var(--poiret);
 }
 
-.image-overlay p:hover {
+.swap-image-overlay p:hover {
   text-decoration: underline;
 }
 
-.product-card-image {
-  width: 100%;
-  height: auto; /* dinamik yükseklik */
-  display: block;
-  object-fit: cover;
-}
-
-.content-container {
+.swap-content-container {
   width: 100%;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: flex-start;
   padding: 8px 10px;
   box-sizing: border-box;
 }
 
-.product-content {
+.swap-product-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.product-content .title,
-.product-content .price {
+.swap-title,
+.swap-price {
   font-size: 0.9rem;
   font-weight: bold;
   font-family: var(--poiret);
 }
 
-/* bookmark */
-.ui-bookmark {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ui-bookmark input {
-  display: none;
-}
-
-.ui-bookmark .bookmark {
-  color: rgb(164, 164, 164);
-  cursor: pointer;
-  transition: 0.25s ease;
+/* Bookmark */
+.swap-ui-bookmark {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ui-bookmark .bookmark:hover {
+.swap-ui-bookmark input {
+  display: none;
+}
+
+.swap-ui-bookmark .swap-bookmark {
+  color: rgb(164, 164, 164);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.25s ease;
+}
+
+.swap-ui-bookmark .swap-bookmark:hover {
   color: rgb(165, 164, 164);
 }
 
-.ui-bookmark .bookmark.active {
+.swap-ui-bookmark .swap-bookmark.active {
   color: var(--orange);
-  animation: bookmark-scale 0.3s forwards;
+  animation: swap-bookmark-scale 0.3s forwards;
 }
 
-@keyframes bookmark-scale {
+@keyframes swap-bookmark-scale {
   50% {
     transform: scaleY(0.6);
   }
@@ -118,31 +118,29 @@
   }
 }
 
-/* Responsive */
+/* Responsive width için inline-block kullanıyoruz */
 @media (min-width: 576px) {
-  .product-card-container {
-    width: 180px;
+  .swap-product-card {
+    width: 100%;
   }
 }
 
 @media (min-width: 768px) {
-  .product-card-container {
-    width: 220px;
+  .swap-product-card {
+    width: 100%;
   }
 
-  .product-content .title,
-  .product-content .price {
-    font-size: 1rem;
+  .swap-title {
+    font-size: 1.2rem;
   }
 }
 
 @media (min-width: 1024px) {
-  .product-card-container {
-    width: 250px;
+  .swap-product-card {
+    width: 100%;
   }
 
-  .product-content .title,
-  .product-content .price {
-    font-size: 1.2rem;
+  .swap-title {
+    font-size: 1.4rem;
   }
 }

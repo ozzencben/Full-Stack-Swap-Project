@@ -58,32 +58,32 @@ const ProductCard = ({ product, isAuthenticated }) => {
   };
 
   return (
-    <div className="product-card-container">
-      <div className="image-box">
-        <div className="image-overlay">
+    <div className="swap-product-card">
+      <div className="swap-image-box">
+        <div className="swap-image-overlay">
           <p onClick={() => navigate(`/product/${product.id}`)}>View Details</p>
         </div>
         <img
           src={product.images[0]}
           alt={product.title}
-          className="product-card-image"
+          className="swap-product-card-image"
           loading="lazy"
         />
       </div>
-      <div className="content-container">
-        <div className="product-content">
-          <p className="title">{product.title}</p>
-          <p className="price">{product.price}</p>
+      <div className="swap-content-container">
+        <div className="swap-product-content">
+          <p className="swap-title">{product.title}</p>
+          <p className="swap-price">{product.price}</p>
         </div>
-        <div className="bookmark-container">
-          <label className="ui-bookmark">
+        <div className="swap-ui-bookmark">
+          <label>
             <input
               type="checkbox"
               checked={checked}
               onChange={toggleFavoriteProduct}
               disabled={loading}
             />
-            <div className={`bookmark ${checked ? "active" : ""}`}>
+            <div className={`swap-bookmark ${checked ? "active" : ""}`}>
               <FaBookmark size={24} />
             </div>
           </label>

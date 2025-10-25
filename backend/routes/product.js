@@ -291,6 +291,21 @@ router.post("/:id/favorite", auth, async (req, res, next) => {
       .insert([{ user_id, product_id }]);
     if (insertErr) throw insertErr;
 
+    const {data: notification, error: notificationErr} = await supabase
+      .from("notifications")
+      .insert([
+        {
+          type: "favorite",
+          messsage: "Your product has been favorited",
+          user_id: product.user_id,
+          product_id,
+        },
+      ])
+      .select("*")
+      .single();
+
+    if (notificationErr) throw notificationErr;
+
     await supabase.rpc("increment_favorite_count", {
       product_id_param: product_id,
     });
