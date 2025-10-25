@@ -17,9 +17,17 @@ export const createProduct = async (formData) => {
 
 // ======================== GET ALL PRODUCTS (Explore) ========================
 export const getAllProducts = async (params = {}) => {
-  // params: { page, limit, category_id, condition_id, status_id, search, favorite }
-  const res = await api.get("/products", { params });
-  return res.data;
+  try {
+    // params: { page, limit, category_id, condition_id, status_id, search, favorite }
+    const res = await api.get("/products", { params });
+    return res.data;
+  } catch (err) {
+    // Hata detayını console'a bas
+    console.error("Get all products error:", err.response?.data || err.message);
+
+    // Hata mesajını frontend'de kullanmak için fırlat
+    throw new Error(err.response?.data?.message || "Failed to fetch products");
+  }
 };
 
 // ======================== GET MY PRODUCTS ========================

@@ -78,17 +78,23 @@ const AddProduct = () => {
     try {
       setSubmitting(true);
 
+      // ------------------- DEFAULT STATUS -------------------
       const activeStatus = statuses.find(
         (status) => status.display_name === "Active"
       );
-      const statusId = activeStatus ? activeStatus.id : null;
+      const statusId = activeStatus ? activeStatus.id : 1; // default 1
 
       const data = new FormData();
       data.append("title", formData.title);
       data.append("description", formData.description);
       data.append("price", formData.price);
-      data.append("category_id", formData.category_id);
-      data.append("condition_id", formData.condition_id);
+
+      // ------------------- DEFAULTS FOR CATEGORY & CONDITION -------------------
+      const categoryId = formData.category_id || 1;
+      const conditionId = formData.condition_id || 1;
+
+      data.append("category_id", categoryId);
+      data.append("condition_id", conditionId);
       data.append("status_id", statusId);
 
       Array.from(images).forEach((file) => data.append("images", file));
@@ -97,6 +103,8 @@ const AddProduct = () => {
 
       toast.success("Product created successfully!");
       setSubmitting(false);
+
+      // Reset form
       setFormData({
         title: "",
         description: "",

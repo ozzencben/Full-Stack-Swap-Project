@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { AiOutlineLogout } from "react-icons/ai";
-import { CiUser } from "react-icons/ci";
+import { CiLogin, CiUser } from "react-icons/ci";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { IoAdd } from "react-icons/io5";
 import AuthContext from "../../context/auth/AuthContext";
@@ -61,7 +61,11 @@ const Navbar = () => {
         <>
           <div className="hamburger">
             <label>
-              <input type="checkbox" checked={isOpen} onChange={toggleOpenMenu} />
+              <input
+                type="checkbox"
+                checked={isOpen}
+                onChange={toggleOpenMenu}
+              />
               <svg viewBox="0 0 32 32">
                 <path
                   className="line line-top-bottom"
@@ -91,15 +95,24 @@ const Navbar = () => {
       <div className="nav-buttons">
         {isAuthenticated ? (
           <>
-            <div className="nav-button" onClick={() => closeMenu("/add-product")}>
+            <div
+              className="nav-button"
+              onClick={() => closeMenu("/add-product")}
+            >
               <IoAdd />
             </div>
 
-            <div className="nav-button" onClick={() => closeMenu("/my-profile")}>
+            <div
+              className="nav-button"
+              onClick={() => closeMenu("/my-profile")}
+            >
               <CiUser />
             </div>
 
-            <div className="nav-button notification-btn" onClick={() => closeMenu("/notification")}>
+            <div
+              className="nav-button notification-btn"
+              onClick={() => closeMenu("/notification")}
+            >
               <IoIosNotificationsOutline />
               {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
             </div>
@@ -109,8 +122,11 @@ const Navbar = () => {
             </div>
           </>
         ) : (
-          <button onClick={() => closeMenu("/login")} className="nav-button sign-in">
-            Sign In
+          <button
+            onClick={() => closeMenu("/login")}
+            className="nav-button sign-in"
+          >
+            <CiLogin />
           </button>
         )}
       </div>

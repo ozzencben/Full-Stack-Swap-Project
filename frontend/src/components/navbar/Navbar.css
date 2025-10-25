@@ -191,10 +191,7 @@
   /* Sign In butonu */
   .nav-button.sign-in {
     border-radius: 25px;
-    padding: 0 18px;
     height: 40px;
-    font-size: 15px;
-    font-weight: 600;
     color: #ff7b00;
     background: #fff;
     border: 1.5px solid #ff7b00;
@@ -205,6 +202,12 @@
     background: #ff7b00;
     color: #fff;
     box-shadow: 0 4px 10px rgba(255, 123, 0, 0.4);
+  }
+
+  .nav-button.sign-in svg {
+    width: 20px;
+    height: 20px;
+    color: var(--orange);
   }
 
   /* Küçük dokunuş: ikonlar birbirine çok yakınsa */
