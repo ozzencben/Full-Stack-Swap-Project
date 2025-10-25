@@ -6,13 +6,15 @@ import Login from "../pages/login/Login";
 import Register from "../pages/register/Register";
 
 import Home from "../pages/home/Home";
+import Notification from "../pages/notifications/Notification";
 import AddProduct from "../pages/product/add/AddProduct";
+import ProductDetail from "../pages/product/detail/ProductDetail";
 import ExplorePage from "../pages/product/explore/ExplorePage";
+import MakeOffer from "../pages/product/offer/makeOffer/MakeOffer";
+import OfferDetail from "../pages/product/offer/offerDetail/OfferDetail";
+import UpdateProduct from "../pages/product/update/UpdateProduct";
 import MyProfile from "../pages/profile/my-profile/MyProfile";
 import UserProfile from "../pages/profile/user-profile/UserProfile";
-import Notification from "../pages/notifications/Notification";
-import ProductDetail from "../pages/product/detail/ProductDetail";
-import UpdateProduct from "../pages/product/update/UpdateProduct";
 
 const AppRoute = () => {
   return (
@@ -29,6 +31,8 @@ const AppRoute = () => {
         <Route path="/notification" element={<Notification />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/update-product/:id" element={<UpdateProduct />} />
+        <Route path="/make-offer/:id" element={<MakeOffer />} />
+        <Route path="/offer-detail/:id" element={<OfferDetail />} />
       </Routes>
     </>
   );

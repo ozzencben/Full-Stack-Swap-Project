@@ -8,6 +8,7 @@ const userRouter = require("./routes/user");
 const addressRouter = require("./routes/address");
 const productRouter = require("./routes/product");
 const notificationRouter = require("./routes/notification");
+const tradeRouter = require("./routes/trades");
 const http = require("http");
 const { initSocket, getIo } = require("./config/socket");
 
@@ -25,6 +26,7 @@ app.use("/api/users", userRouter);
 app.use("/api/addresses", addressRouter);
 app.use("/api/products", productRouter);
 app.use("/api/notifications", notificationRouter);
+app.use("/api/trades", tradeRouter);
 
 // global error handler
 app.use(errorHandler);

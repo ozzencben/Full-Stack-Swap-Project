@@ -26,6 +26,7 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchUserById = async () => {
       try {
+        if (!productDetail?.user_id) return;
         const res = await getUserById(productDetail.user_id);
         setOwnerData(res.user);
       } catch (error) {
@@ -134,45 +135,61 @@ const ProductDetail = () => {
           <p className="detail-description">{productDetail.description}</p>
           <p className="detail-price">${productDetail.price}</p>
 
-          <div
-            className="product-owner-card"
-            onClick={() => navigate(`/user-profile/${ownerData.id}`)}
-          >
-            <div className="product-owner-left">
-              <div className="owner-avatar">
-                {ownerData?.profile_image ? (
-                  <img
-                    src={ownerData.profile_image}
-                    alt="Owner"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="owner-avatar-placeholder">
-                    <span>{ownerData.firstname?.[0] || "?"}</span>
-                    <span>{ownerData.lastname?.[0] || ""}</span>
-                  </div>
-                )}
-              </div>
-              <div className="owner-text">
-                <h4 className="owner-fullname">
-                  {ownerData.firstname} {ownerData.lastname}
-                </h4>
-                <p className="owner-username">@{ownerData.username}</p>
-              </div>
-            </div>
-
-            <div className="product-owner-actions">
-              <button
-                className="owner-message-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toast.info("Messaging feature coming soon!");
-                }}
+          {user && user.id !== productDetail.user_id && (
+            <>
+              <div
+                className="product-owner-card"
+                onClick={() => navigate(`/user-profile/${ownerData.id}`)}
               >
-                Message
-              </button>
-            </div>
-          </div>
+                <div className="product-owner-left">
+                  <div className="owner-avatar">
+                    {ownerData?.profile_image ? (
+                      <img
+                        src={ownerData.profile_image}
+                        alt="Owner"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="owner-avatar-placeholder">
+                        <span>{ownerData.firstname?.[0] || "?"}</span>
+                        <span>{ownerData.lastname?.[0] || ""}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="owner-text">
+                    <h4 className="owner-fullname">
+                      {ownerData.firstname} {ownerData.lastname}
+                    </h4>
+                    <p className="owner-username">@{ownerData.username}</p>
+                  </div>
+                </div>
+
+                <div className="product-owner-actions">
+                  <button
+                    className="owner-message-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.info("Messaging feature coming soon!");
+                    }}
+                  >
+                    Message
+                  </button>
+                </div>
+              </div>
+
+              <div className="make-offer-container">
+                <button
+                  className="button"
+                  onClick={() => navigate(`/make-offer/${id}`)}
+                >
+                  <span className="button_lg">
+                    <span className="button_sl"></span>
+                    <span className="button_text">Make an offer</span>
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

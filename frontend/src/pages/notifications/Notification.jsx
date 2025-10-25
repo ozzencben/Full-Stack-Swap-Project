@@ -29,14 +29,21 @@ const Notification = () => {
       const notificationsWithSender = await Promise.all(
         res.map(async (notification) => {
           const sender = await getUserById(notification.sender_id);
+
+          // metadata parse
+          const metadata =
+            typeof notification.metadata === "string"
+              ? JSON.parse(notification.metadata)
+              : notification.metadata;
+
           return {
             ...notification,
             senderUser: sender,
+            metadata,
           };
         })
       );
 
-      // Eğer çekilen sayfa PAGE_SIZE’dan küçükse daha fazla veri yok
       if (notificationsWithSender.length < PAGE_SIZE) setHasMore(false);
 
       setNotifications((prev) =>
@@ -78,7 +85,7 @@ const Notification = () => {
     fetchNotificationsPage(nextPage);
   };
 
-  if (loading && page === 1) return <Loader />; // sadece ilk yüklemede full loader
+  if (loading && page === 1) return <Loader />;
 
   return (
     <div className="notification-container">
@@ -117,15 +124,34 @@ const Notification = () => {
                       {notification.senderUser.user?.username}
                     </p>
                   </div>
-                  <p
-                    className="notification-message"
-                    onClick={() =>
-                      navigate(`/product/${notification.metadata.productId}`)
-                    }
-                  >
-                    {notification.message}
-                  </p>
+
+                  {notification.type === "favorite" ? (
+                    <p
+                      className="notification-message"
+                      onClick={() =>
+                        navigate(`/product/${notification.metadata.productId}`)
+                      }
+                    >
+                      {notification.message}
+                    </p>
+                  ) : notification.metadata?.tradeId ? (
+                    <p
+                      className="notification-message"
+                      onClick={() =>
+                        navigate(
+                          `/offer-detail/${notification.metadata.tradeId}`
+                        )
+                      }
+                    >
+                      {notification.message}
+                    </p>
+                  ) : (
+                    <p className="notification-message">
+                      {notification.message}
+                    </p>
+                  )}
                 </div>
+
                 <p className="notification-time">
                   {formatDistanceToNow(new Date(notification.created_at), {
                     locale: enUS,
