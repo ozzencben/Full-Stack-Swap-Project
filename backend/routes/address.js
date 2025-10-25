@@ -6,6 +6,7 @@ const { supabase } = require("../supabaseClient");
 // ======================== ADD ADDRESS ========================
 router.post("/add", auth, async (req, res, next) => {
   try {
+    // Form alanları
     const {
       title,
       full_name,
@@ -21,9 +22,11 @@ router.post("/add", auth, async (req, res, next) => {
       additional_info,
     } = req.body;
 
-    const user_id = req.user.id;
+    // UUID trim’lenmiş şekilde al
+    const user_id = req.user.id?.trim();
     console.log("Trying to add address for user_id:", user_id, req.body);
 
+    // Zorunlu alan kontrolü
     if (
       !title ||
       !full_name ||
@@ -42,32 +45,12 @@ router.post("/add", auth, async (req, res, next) => {
       });
     }
 
-    // ------------------- CHECK IF USER EXISTS -------------------
-    const { data: userCheck, error: userCheckErr } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", user_id)
-      .single();
-
-    if (userCheckErr) {
-      console.error("Error checking user in Supabase:", userCheckErr);
-      return res
-        .status(500)
-        .json({ success: false, message: "Database error" });
-    }
-
-    if (!userCheck) {
-      console.warn("User not found for ID:", user_id);
-      return res
-        .status(400)
-        .json({ success: false, message: "User not found" });
-    }
-
+    // Insert işlemi
     const { data, error } = await supabase
       .from("addresses")
       .insert([
         {
-          user_id,
+          user_id, // trimlenmiş UUID
           title,
           full_name,
           phone_number,
@@ -87,12 +70,14 @@ router.post("/add", auth, async (req, res, next) => {
 
     if (error) {
       console.error("Error inserting address:", error);
-      return res.status(500).json({ success: false, message: error.message });
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+        details: error.details,
+      });
     }
 
-    console.log("Address added successfully:", data);
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "Address added successfully",
       address: data,
